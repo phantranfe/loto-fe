@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loto Master</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: 255, 62, 62;
+            --secondary: 255, 193, 7;
+            --bg: #1a1a2e;
+            font-size: 100%;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: "Nunito", sans-serif;
+            background: var(--bg);
+            color: white;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .nav-tabs {
+            display: none;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1.2rem;
+            border: none;
+            background: none;
+            color: #fff;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: inherit;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active {
+            color: rgb(var(--primary));
+            border-bottom: 3px solid rgb(var(--primary));
+            background: rgba(var(--primary), 0.1);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 62rem;
+            padding: 1.5rem;
+            display: none;
+        }
+
+        .container.active {
+            display: block;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2rem;
+            border-radius: 2rem;
+            border: 0.125rem solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            position: relative;
+        }
+
+        .title {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .title-large {
+            font-size: 2rem;
+            font-weight: 900;
+            color: rgb(var(--primary));
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .sub-title {
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        .main-number {
+            font-size: 7.5rem;
+            font-weight: 900;
+            color: rgb(var(--primary));
+            text-shadow: 0 0 1.25rem rgba(var(--primary), 0.5);
+            margin: 0.75rem 0;
+            height: 9rem;
+            line-height: 9rem;
+        }
+
+        .btn {
+            font-family: "Nunito", sans-serif;
+            padding: 1rem 2.5rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 3rem;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            user-select: none;
+        }
+
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: .5;
+        }
+
+        .btn-primary {
+            background: rgb(var(--primary));
+            color: white;
+            box-shadow: 0 0.3125rem 0.9375rem rgba(var(--primary), 0.5);
+        }
+
+        .btn-primary.pressing {
+            transform: scale(0.95);
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #888;
+            border: 0.0625rem solid #444;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .switch-row {
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            color: #bbb;
+            user-select: none;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 3.25rem;
+            height: 1.75rem;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #444;
+            transition: 0.2s;
+            border-radius: 999px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 1.25rem;
+            width: 1.25rem;
+            left: 0.25rem;
+            top: 0.25rem;
+            background: white;
+            transition: 0.2s;
+            border-radius: 50%;
+        }
+
+        .switch input:checked+.slider {
+            background: rgba(var(--primary), 1);
+            box-shadow: 0 0 0.625rem rgba(var(--primary), 0.35);
+        }
+
+        .switch input:checked+.slider:before {
+            transform: translateX(1.5rem);
+        }
+
+        .board-container {
+            background: white;
+            padding: 1.25rem;
+            border-radius: 1rem;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 0.75rem;
+            width: 100%;
+            box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.5);
+        }
+
+        .cell {
+            aspect-ratio: 1/1;
+            background: #eee;
+            color: #bbb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.4s ease;
+        }
+
+        .cell.active {
+            background: rgb(var(--primary));
+            color: white;
+            box-shadow: 0 0 0.625rem rgba(var(--primary), 0.5);
+            z-index: 1;
+        }
+
+        .cell.latest {
+            animation: pulse 0.5s infinite alternate;
+            background: rgb(var(--secondary));
+            color: #000;
+            position: relative;
+            z-index: 9;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .color-group {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.7rem;
+            border-radius: 0.7rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .choice-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .card-option {
+            flex: 1;
+            height: 4rem;
+            border-radius: 1rem;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 0.2rem solid transparent;
+            transition: 0.3s;
+            position: relative;
+            background: rgba(var(--opt-bg), 0.7);
+        }
+
+        .card-option span {
+            font-weight: 900;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .card-option.selected {
+            border-color: white;
+            transform: scale(1.05);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+            background: rgb(var(--opt-bg));
+        }
+
+        .card-option.locked {
+            opacity: 0.3;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        #tickets-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2rem;
+            gap: 2rem;
+            width: 100%;
+        }
+
+        .ticket {
+            background: white;
+            padding: 1.25rem;
+            border-radius: 1.5rem;
+            width: 100%;
+            max-width: 50rem;
+            box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.5);
+            border: 0.4rem solid rgb(var(--t-color));
+            color: #333;
+        }
+
+        .ticket-header {
+            color: rgb(var(--t-color));
+            text-align: center;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        .loto-grid-row {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .ticket-cell {
+            aspect-ratio: 1/1;
+            background: #eee;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            border-radius: 0.75rem;
+            font-size: 1.5rem;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .ticket-cell.empty {
+            background: rgba(var(--t-color), 0.2);
+            border-color: rgba(var(--t-color), 0.05);
+            cursor: default;
+            color: transparent;
+        }
+
+        .ticket-cell.marked {
+            background: rgb(var(--t-color)) !important;
+            color: white !important;
+            transform: scale(0.92);
+            box-shadow: 0 0 1rem rgb(var(--t-color));
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .login-box {
+            max-width: 400px;
+            margin: 80px auto;
+        }
+
+        .input-custom {
+            width: 100%;
+            padding: 1rem;
+            margin-top: 10px;
+            border-radius: 1rem;
+            border: none;
+            background: #2a2a40;
+            color: white;
+            text-align: center;
+            font-family: inherit;
+            font-size: 1.1rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: #2a2a40;
+            padding: 2rem;
+            border-radius: 2rem;
+            width: 90%;
+            max-width: 400px;
+            border: 0.125rem solid rgba(255, 255, 255, 0.1);
+        }
+
+        #user-list-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: rgb(var(--primary));
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+            font-size: 1.5rem;
+        }
+
+        .user-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .user-row .dealer {
+            color: rgb(255, 255, 0);
+        }
+
+        .user-row .ready {
+            color: rgb(0, 255, 26);
+        }
+
+        .user-row .not-ready {
+            color: rgb(255, 145, 0);
+        }
+
+        .btn-small {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.7rem;
+            margin: 0;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+                box-shadow: 0 0 0.625rem rgba(var(--secondary), 0.5);
+            }
+
+            to {
+                transform: scale(1.1);
+                box-shadow: 0 0 2rem rgba(var(--secondary), 0.5);
+            }
+        }
+
+        @media (max-width: 37.5rem) {
+            .board-container {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .main-number {
+                font-size: 5rem;
+            }
+
+            .loto-grid-row {
+                gap: 0.3rem;
+            }
+
+            .ticket-cell {
+                font-size: 0.9rem;
+                border-radius: 0.4rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="login-screen" class="container active">
+        <div class="header-section login-box">
+            <div class="title-large">Loto Master</div>
+            <input type="text" id="user-name" placeholder="Tên của bạn" class="input-custom">
+            <input type="text" id="room-id" placeholder="Mã phòng" class="input-custom">
+            <input type="password" id="room-pass" placeholder="Mật khẩu phòng" class="input-custom">
+            <button class="btn btn-primary" onclick="joinGame()" style="width:100%; margin-top:20px">VÀO PHÒNG</button>
+        </div>
+    </div>
+
+    <nav class="nav-tabs" id="main-nav">
+        <button class="tab-btn active" id="tab-draw" onclick="switchTab('draw-view')">Quay số</button>
+        <button class="tab-btn" id="tab-play" onclick="switchTab('play-view')">Dò số</button>
+    </nav>
+
+    <div id="draw-view" class="container">
+        <div class="header-section">
+            <div class="title" id="dealer-status">SỐ VỪA QUAY</div>
+            <div class="main-number" id="current-display">--</div>
+            <button class="btn btn-primary" id="draw-btn" disabled>QUAY SỐ</button>
+            <br />
+            <button class="btn btn-secondary" id="reset-btn" style="display:none">CHƠI LẠI</button>
+            <div class="switch-row">
+                <span>Đọc số</span>
+                <label class="switch"><input type="checkbox" id="voice-toggle" checked /><span
+                        class="slider"></span></label>
+            </div>
+        </div>
+        <div class="board-container" id="loto-board"></div>
+    </div>
+
+    <div id="play-view" class="container">
+        <div class="header-section" id="auto-mark-section" style="display:none">
+            <div class="switch-row" style="margin:0">
+                <span>Tự động đánh dấu</span>
+                <label class="switch"><input type="checkbox" id="auto-mark" /><span class="slider"></span></label>
+            </div>
+        </div>
+
+        <div id="selection-screen">
+            <div class="header-section">
+                <div class="title-large">Chọn tờ</div>
+                <div class="sub-title">Chọn tờ may mắn để bắt đầu chơi</div>
+                <div class="color-grid" id="color-container"></div>
+            </div>
+            <div class="text-center">
+                <button class="btn btn-primary" id="ready-btn" onclick="ready()">SẴN SÀNG</button>
+            </div>
+        </div>
+
+        <div id="gaming-screen" style="display:none">
+            <div id="tickets-container"></div>
+        </div>
+    </div>
+
+    <div id="user-list-btn" onclick="toggleModal()"><i class="fa-solid fa-user-group"></i></div>
+    <div id="user-modal" class="modal" onclick="if(event.target==this) toggleModal()">
+        <div class="modal-content">
+            <div class="title-large" style="font-size:1.5rem">Người chơi</div>
+            <div id="user-list-content"></div>
+            <button class="btn btn-secondary" style="width:100%; margin-top:20px" onclick="toggleModal()">ĐÓNG</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io("https://loto-be.onrender.com");
+        let myName, myRoomId, roomData, myTicketIds = [];
+        const poolSize = 90;
+        const minDrawTime = 1000;
+        let pool = Array.from({
+                length: poolSize,
+            },
+            (_, i) => i + 1
+        );
+        let timer = null;
+        let startTime = 0;
+        let isPressing = false;
+        let isLocked = false;
+        let isAwakened = false;
+
+        const board = document.getElementById("loto-board");
+        const drawBtn = document.getElementById("draw-btn");
+        const display = document.getElementById("current-display");
+        const voiceToggle = document.getElementById("voice-toggle");
+        const selectionScreen = document.getElementById("selection-screen");
+        const gamingScreen = document.getElementById("gaming-screen");
+        const resetBtn = document.getElementById("reset-btn");
+
+        const amIDealer = () => roomData.dealer === socket.id;
+        for (let i = 1; i <= 90; i++) {
+            const div = document.createElement("div");
+            div.className = "cell";
+            div.id = `num-${i}`;
+            div.innerText = i;
+            board.appendChild(div);
+        }
+
+        function joinGame() {
+            myName = document.getElementById("user-name").value.trim();
+            myRoomId = document.getElementById("room-id").value.trim();
+            const pass = document.getElementById("room-pass").value;
+            if (!myName || !myRoomId) return alert("Vui lòng nhập đủ thông tin.");
+            socket.emit('join_room', {
+                roomId: myRoomId,
+                userName: myName,
+                password: pass
+            });
+        }
+
+        socket.on('join_error', data => {
+            alert(data);
+        });
+
+        socket.on('room_state', data => {
+            const isFirst = !roomData;
+            roomData = data;
+            document.getElementById("login-screen").style.display = "none";
+            document.getElementById("main-nav").style.display = "flex";
+            document.getElementById("user-list-btn").style.display = "flex";
+
+            if (isFirst) {
+                if (roomData.dealer !== socket.id) switchTab('play-view');
+                else switchTab('draw-view');
+            }
+            updateUI();
+        });
+
+        drawBtn.addEventListener("pointerdown", handlePress);
+        drawBtn.addEventListener("pointerup", handleRelease);
+
+        function handlePress(e) {
+            if (drawBtn.disabled) return;
+            if (e) e.preventDefault();
+            if (!isAwakened) {
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+                isAwakened = true;
+            }
+            if (isLocked || pool.length === 0) return;
+            isPressing = true;
+            isLocked = true;
+            startTime = Date.now();
+            drawBtn.classList.add("pressing");
+            timer = setInterval(() => {
+                display.innerText = Math.floor(Math.random() * poolSize) + 1;
+            }, 60);
+        }
+
+        function handleRelease() {
+            if (!isPressing || drawBtn.disabled) return;
+            isPressing = false;
+            const elapsed = Date.now() - startTime;
+            if (elapsed < minDrawTime) {
+                setTimeout(finalize, minDrawTime - elapsed);
+            } else {
+                finalize();
+            }
+        }
+
+        function finalize() {
+            clearInterval(timer);
+            drawBtn.classList.remove("pressing");
+            const idx = Math.floor(Math.random() * pool.length);
+            const result = pool.splice(idx, 1)[0];
+
+            display.innerText = result;
+            if (voiceToggle.checked) speak(`Số ${result}`);
+
+            document
+                .querySelectorAll(".cell.latest")
+                .forEach((el) => el.classList.remove("latest"));
+            const cell = document.getElementById(`num-${result}`);
+            cell.classList.add("active", "latest");
+
+            isLocked = false;
+            socket.emit('draw_number', {
+                roomId: myRoomId,
+                number: result
+            });
+        }
+
+        socket.on('new_number', data => {
+            roomData.drawnNumbers = data.history;
+            display.innerText = data.number;
+            document.querySelectorAll(".cell.latest").forEach(el => el.classList.remove("latest"));
+            const cell = document.getElementById(`num-${data.number}`);
+            if (cell) cell.classList.add("active", "latest");
+            if (document.getElementById("auto-mark").checked || amIDealer()) syncMark(data.number, true);
+        });
+
+        socket.on('game_reset', (data) => {
+            document.querySelectorAll(".cell").forEach(el => {
+                el.classList.remove("active", "latest");
+            });
+
+            document.querySelectorAll(".ticket-cell").forEach(el => {
+                el.classList.remove("marked");
+            });
+
+            selectionScreen.style.display = "block";
+            gamingScreen.style.display = "none";
+            display.innerText = "--";
+
+            renderUserList();
+
+            alert("Ván mới đã bắt đầu, vui lòng chọn lại tờ dò và bấm sẵn sàng.");
+        });
+
+        socket.on('update_tickets', ts => {
+            roomData.tickets = ts;
+            renderSelection();
+        });
+
+        function updateUI() {
+            drawBtn.style.display = amIDealer() ? "inline-block" : "none";
+            resetBtn.style.display = amIDealer() ? "inline-block" : "none";
+            document.getElementById("auto-mark-section").style.display = amIDealer() ? "none" : "block";
+            document.getElementById("dealer-status").innerText = amIDealer() ? "BẠN ĐANG CẦM CÁI" : "SỐ VỪA QUAY";
+            roomData.drawnNumbers.forEach(n => document.getElementById(`num-${n}`).classList.add("active"));
+            renderSelection();
+            renderUserList();
+        }
+
+        function renderSelection() {
+            const container = document.getElementById("color-container");
+            container.innerHTML = "";
+            for (let i = 0; i < roomData.tickets.length; i += 2) {
+                const group = document.createElement("div");
+                group.className = "color-group";
+                const tA = roomData.tickets[i],
+                    tB = roomData.tickets[i + 1];
+                group.innerHTML = `
+                <div class="choice-row">
+                    <div class="card-option ${tA.owner && tA.owner!==socket.id?'locked':''} ${myTicketIds.includes(tA.id)?'selected':''}" style="--opt-bg: ${tA.color}" onclick="pickTicket('${tA.id}')">
+                        <span>Tờ A</span><small>${tA.userName || ''}</small>
+                    </div>
+                    <div class="card-option ${tB.owner && tB.owner!==socket.id?'locked':''} ${myTicketIds.includes(tB.id)?'selected':''}" style="--opt-bg: ${tB.color}" onclick="pickTicket('${tB.id}')">
+                        <span>Tờ B</span><small>${tB.userName || ''}</small>
+                    </div>
+                </div>`;
+                container.appendChild(group);
+            }
+        }
+
+        function pickTicket(id) {
+            if (myTicketIds.includes(id)) {
+                myTicketIds = myTicketIds.filter(i => i !== id);
+                socket.emit('unpick_ticket', {
+                    roomId: myRoomId,
+                    ticketId: id
+                });
+            } else {
+                const t = roomData.tickets.find(x => x.id === id);
+                if (t.owner) return;
+                myTicketIds.push(id);
+                socket.emit('pick_ticket', {
+                    roomId: myRoomId,
+                    ticketId: id,
+                    userName: myName
+                });
+            }
+            renderSelection();
+        }
+
+        let isAllReady = false;
+
+        socket.on('update_ready_status', (data) => {
+            console.log(data);
+            isAllReady = data.allReady;
+            roomData.users = data.users;
+
+            renderUserList();
+
+            if (amIDealer()) {
+                drawBtn.disabled = !isAllReady;
+            }
+        });
+
+        function ready() {
+            if (myTicketIds.length === 0) return alert("Hãy chọn tờ dò để bắt đầu chơi.");
+            selectionScreen.style.display = "none";
+            gamingScreen.style.display = "block";
+            const container = document.getElementById("tickets-container");
+            container.innerHTML = "";
+            myTicketIds.forEach(id => {
+                const t = roomData.tickets.find(x => x.id === id);
+                const ticketDiv = document.createElement("div");
+                ticketDiv.className = "ticket";
+                ticketDiv.style.setProperty("--t-color", t.color);
+                let gridHtml = t.data.map(row =>
+                    `<div class="loto-grid-row">${row.map(n => n ? `<div class="ticket-cell ${roomData.drawnNumbers.includes(n)?'marked':''}" data-num="${n}" onclick="this.classList.toggle('marked'); checkWin(this.closest('.ticket'))">${n}</div>` : `<div class="ticket-cell empty"></div>`).join("")}</div>`
+                ).join("");
+                ticketDiv.innerHTML = `<div class="ticket-header">TỜ ${id}</div>${gridHtml}`;
+                container.appendChild(ticketDiv);
+            });
+            socket.emit('ready', myRoomId);
+        }
+
+        function syncMark(num, mark) {
+            document.querySelectorAll(`.ticket-cell[data-num="${num}"]`).forEach(c => {
+                if (mark) c.classList.add("marked");
+                else c.classList.remove("marked");
+                checkWin(c.closest(".ticket"));
+            });
+        }
+
+        function checkWin(el) {
+            el.querySelectorAll(".loto-grid-row").forEach(row => {
+                const cells = Array.from(row.querySelectorAll(".ticket-cell:not(.empty)"));
+                if (cells.length > 0 && cells.every(c => c.classList.contains("marked"))) {
+                    socket.emit('claim_win', {
+                        roomId: myRoomId,
+                        userName: myName
+                    });
+                }
+            });
+        }
+
+        function renderUserList() {
+            const container = document.getElementById("user-list-content");
+
+            container.innerHTML = roomData.users.map(u => {
+                const isMe = u.id === socket.id;
+                const isDealer = u.id === roomData.dealer;
+
+                let statusIcon = "";
+                if (isDealer) {
+                    statusIcon =
+                        `<span class="dealer" title="Người cầm cái"><i class="fa-solid fa-crown"></i></span>`;
+                } else {
+                    statusIcon = u.isReady ?
+                        `<span class="ready" title="Đã sẵn sàng"><i class="fa-solid fa-circle-check"></i></span>` :
+                        `<span class="not-ready" title="Đang chờ"><i class="fa-solid fa-hourglass-half"></i></span>`;
+                }
+
+                return `
+            <div class="user-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.2rem;">${statusIcon}</span>
+                    <span style="${isMe ? 'color: rgb(var(--primary)); font-weight: bold;' : ''}">
+                        ${u.name} ${isMe ? '<small>(Bạn)</small>' : ''}
+                    </span>
+                </div>
+                
+                ${amIDealer() && !isMe ? `
+                    <button class="btn btn-secondary" 
+                            style="padding: 4px 12px; font-size: 0.7rem; margin: 0;" 
+                            onclick="changeDealer('${u.id}')">
+                        GIAO CÁI <i class="fa-solid fa-handshake"></i>
+                    </button>
+                ` : ''}
+            </div>
+        `;
+            }).join("");
+        }
+
+        function changeDealer(id) {
+            if (confirm("Giao quyền cầm Cái cho người này?")) {
+                socket.emit('change_dealer', {
+                    roomId: myRoomId,
+                    targetUserId: id
+                });
+                toggleModal();
+            }
+        }
+
+        resetBtn.onclick = () => {
+            if (confirm("Chơi ván mới?")) socket.emit('reset_game', myRoomId);
+        };
+
+        function toggleModal() {
+            const m = document.getElementById("user-modal");
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function speak(t) {
+            window.speechSynthesis.cancel();
+            const s = new SpeechSynthesisUtterance(t);
+            s.lang = 'vi-VN';
+            window.speechSynthesis.speak(s);
+        }
+
+        function switchTab(id) {
+            document.querySelectorAll(".container").forEach(c => c.classList.remove("active"));
+            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+            document.getElementById(id).classList.add("active");
+            document.getElementById(id === 'draw-view' ? 'tab-draw' : 'tab-play').classList.add("active");
+        }
+    </script>
+</body>
+
+</html>
