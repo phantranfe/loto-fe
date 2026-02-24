@@ -117,6 +117,12 @@
             line-height: 9rem;
         }
 
+        .actions {
+            display: grid;
+            justify-items: center;
+            row-gap: 1rem;
+        }
+
         .btn {
             font-family: "Nunito", sans-serif;
             padding: 1rem 2.5rem;
@@ -150,7 +156,6 @@
             background: transparent;
             color: #888;
             border: 0.0625rem solid #444;
-            margin-top: 1rem;
             font-size: 0.9rem;
         }
 
@@ -312,7 +317,6 @@
             padding: 1.25rem;
             border-radius: 1.5rem;
             width: 100%;
-            max-width: 50rem;
             box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.5);
             border: 0.4rem solid rgb(var(--t-color));
             color: #333;
@@ -365,7 +369,7 @@
         }
 
         .login-box {
-            max-width: 400px;
+            max-width: 25rem;
             margin: 80px auto;
         }
 
@@ -398,7 +402,9 @@
             padding: 2rem;
             border-radius: 2rem;
             width: 90%;
-            max-width: 400px;
+            max-width: 25rem;
+            max-height: 90%;
+            overflow: auto;
             border: 0.125rem solid rgba(255, 255, 255, 0.1);
         }
 
@@ -503,13 +509,13 @@
         <div class="header-section">
             <div class="title" id="dealer-status">SỐ VỪA QUAY</div>
             <div class="main-number" id="current-display">--</div>
-            <button class="btn btn-primary" id="draw-btn" disabled>QUAY SỐ</button>
-            <br />
-            <button class="btn btn-secondary" id="reset-btn" style="display:none">CHƠI LẠI</button>
+            <div class="actions">
+                <button class="btn btn-primary" id="draw-btn" disabled>QUAY SỐ</button>
+                <button class="btn btn-secondary" id="reset-btn">CHƠI LẠI</button>
+            </div>
             <div class="switch-row">
                 <span>Đọc số</span>
-                <label class="switch"><input type="checkbox" id="voice-toggle" checked /><span
-                        class="slider"></span></label>
+                <label class="switch"><input type="checkbox" id="voice-toggle" /><span class="slider"></span></label>
             </div>
         </div>
         <div class="board-container" id="loto-board"></div>
@@ -563,6 +569,7 @@
         let isPressing = false;
         let isLocked = false;
         let isAwakened = false;
+        let isAllReady = false;
 
         const board = document.getElementById("loto-board");
         const drawBtn = document.getElementById("draw-btn");
@@ -649,7 +656,6 @@
             const result = pool.splice(idx, 1)[0];
 
             display.innerText = result;
-            if (voiceToggle.checked) speak(`Số ${result}`);
 
             document
                 .querySelectorAll(".cell.latest")
@@ -671,15 +677,13 @@
             const cell = document.getElementById(`num-${data.number}`);
             if (cell) cell.classList.add("active", "latest");
             if (document.getElementById("auto-mark").checked || amIDealer()) syncMark(data.number, true);
+            if (voiceToggle.checked) speak(`Số ${data.number}`);
         });
 
         socket.on('game_reset', (data) => {
+            roomData = data;
             document.querySelectorAll(".cell").forEach(el => {
                 el.classList.remove("active", "latest");
-            });
-
-            document.querySelectorAll(".ticket-cell").forEach(el => {
-                el.classList.remove("marked");
             });
 
             selectionScreen.style.display = "block";
@@ -704,6 +708,9 @@
             roomData.drawnNumbers.forEach(n => document.getElementById(`num-${n}`).classList.add("active"));
             renderSelection();
             renderUserList();
+            if (amIDealer()) {
+                drawBtn.disabled = !isAllReady;
+            }
         }
 
         function renderSelection() {
@@ -717,10 +724,10 @@
                 group.innerHTML = `
                 <div class="choice-row">
                     <div class="card-option ${tA.owner && tA.owner!==socket.id?'locked':''} ${myTicketIds.includes(tA.id)?'selected':''}" style="--opt-bg: ${tA.color}" onclick="pickTicket('${tA.id}')">
-                        <span>Tờ A</span><small>${tA.userName || ''}</small>
+                        <span>Tờ A</span><small>${tA.userName || '--'}</small>
                     </div>
                     <div class="card-option ${tB.owner && tB.owner!==socket.id?'locked':''} ${myTicketIds.includes(tB.id)?'selected':''}" style="--opt-bg: ${tB.color}" onclick="pickTicket('${tB.id}')">
-                        <span>Tờ B</span><small>${tB.userName || ''}</small>
+                        <span>Tờ B</span><small>${tB.userName || '--'}</small>
                     </div>
                 </div>`;
                 container.appendChild(group);
@@ -747,10 +754,7 @@
             renderSelection();
         }
 
-        let isAllReady = false;
-
         socket.on('update_ready_status', (data) => {
-            console.log(data);
             isAllReady = data.allReady;
             roomData.users = data.users;
 
@@ -800,6 +804,14 @@
                 }
             });
         }
+
+        socket.on('win', data => {
+            if (data === myName) {
+                alert(`Chúc mừng. Bạn đã thắng, hãy cùng nhau kiểm tra lại.`)
+            } else {
+                alert(`${myName} đã thắng, hãy cùng nhau kiểm tra lại.`)
+            }
+        });
 
         function renderUserList() {
             const container = document.getElementById("user-list-content");
