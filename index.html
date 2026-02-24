@@ -102,6 +102,14 @@
             text-transform: uppercase;
         }
 
+        .title-medium {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: rgb(var(--primary));
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
         .sub-title {
             color: #888;
             margin-bottom: 2rem;
@@ -112,7 +120,7 @@
             font-weight: 900;
             color: rgb(var(--primary));
             text-shadow: 0 0 1.25rem rgba(var(--primary), 0.5);
-            margin: 0.75rem 0;
+            margin: 1rem 0;
             height: 9rem;
             line-height: 9rem;
         }
@@ -121,6 +129,7 @@
             display: grid;
             justify-items: center;
             row-gap: 1rem;
+            margin-bottom: 1rem;
         }
 
         .btn {
@@ -134,6 +143,11 @@
             transition: 0.3s;
             text-transform: uppercase;
             user-select: none;
+        }
+
+        .btn.sm {
+            padding: .25rem .75rem; 
+            font-size: 0.7rem; 
         }
 
         .btn:disabled {
@@ -160,7 +174,6 @@
         }
 
         .switch-row {
-            margin-top: 1.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -368,9 +381,16 @@
             border-color: rgba(0, 0, 0, 0.1);
         }
 
+        #login-screen {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .login-box {
             max-width: 25rem;
-            margin: 80px auto;
+            margin: 0;
         }
 
         .input-custom {
@@ -397,6 +417,13 @@
             backdrop-filter: blur(8px);
         }
 
+        #modal-title {
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+            overflow: hidden;
+        }
+
         .modal-content {
             background: #2a2a40;
             padding: 2rem;
@@ -406,6 +433,12 @@
             max-height: 90%;
             overflow: auto;
             border: 0.125rem solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-close-modal,
+        .btn-join-room {
+            width: 100%;
+            margin-top: 1.5rem;
         }
 
         #user-list-btn {
@@ -433,8 +466,15 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .user-row .dealer {
-            color: rgb(255, 255, 0);
+        .user-row>div {
+            display: flex; 
+            align-items: center; 
+            gap: .75rem;
+        }
+
+        .user-row .me {
+            color: rgb(var(--primary)); 
+            font-weight: bold;
         }
 
         .user-row .ready {
@@ -496,7 +536,7 @@
             <input type="text" id="user-name" placeholder="Tên của bạn" class="input-custom">
             <input type="text" id="room-id" placeholder="Mã phòng" class="input-custom">
             <input type="password" id="room-pass" placeholder="Mật khẩu phòng" class="input-custom">
-            <button class="btn btn-primary" onclick="joinGame()" style="width:100%; margin-top:20px">VÀO PHÒNG</button>
+            <button class="btn btn-primary btn-join-room" onclick="joinGame()">VÀO PHÒNG</button>
         </div>
     </div>
 
@@ -523,7 +563,7 @@
 
     <div id="play-view" class="container">
         <div class="header-section" id="auto-mark-section" style="display:none">
-            <div class="switch-row" style="margin:0">
+            <div class="switch-row">
                 <span>Tự động đánh dấu</span>
                 <label class="switch"><input type="checkbox" id="auto-mark" /><span class="slider"></span></label>
             </div>
@@ -548,9 +588,9 @@
     <div id="user-list-btn" onclick="toggleModal()"><i class="fa-solid fa-user-group"></i></div>
     <div id="user-modal" class="modal" onclick="if(event.target==this) toggleModal()">
         <div class="modal-content">
-            <div class="title-large" style="font-size:1.5rem">Người chơi</div>
+            <div class="title-medium" id="modal-title"></div>
             <div id="user-list-content"></div>
-            <button class="btn btn-secondary" style="width:100%; margin-top:20px" onclick="toggleModal()">ĐÓNG</button>
+            <button class="btn btn-secondary btn-close-modal" onclick="toggleModal()">ĐÓNG</button>
         </div>
     </div>
 
@@ -724,10 +764,10 @@
                 group.innerHTML = `
                 <div class="choice-row">
                     <div class="card-option ${tA.owner && tA.owner!==socket.id?'locked':''} ${myTicketIds.includes(tA.id)?'selected':''}" style="--opt-bg: ${tA.color}" onclick="pickTicket('${tA.id}')">
-                        <span>Tờ A</span><small>${tA.userName || '--'}</small>
+                        <span>Tờ ${tA.id}</span><small>${tA.userName || '--'}</small>
                     </div>
                     <div class="card-option ${tB.owner && tB.owner!==socket.id?'locked':''} ${myTicketIds.includes(tB.id)?'selected':''}" style="--opt-bg: ${tB.color}" onclick="pickTicket('${tB.id}')">
-                        <span>Tờ B</span><small>${tB.userName || '--'}</small>
+                        <span>Tờ ${tB.id}</span><small>${tB.userName || '--'}</small>
                     </div>
                 </div>`;
                 container.appendChild(group);
@@ -809,13 +849,14 @@
             if (data === myName) {
                 alert(`Chúc mừng. Bạn đã thắng, hãy cùng nhau kiểm tra lại.`)
             } else {
-                alert(`${myName} đã thắng, hãy cùng nhau kiểm tra lại.`)
+                alert(`${data} đã thắng, hãy cùng nhau kiểm tra lại.`)
             }
         });
 
         function renderUserList() {
+            const title = document.getElementById("modal-title");
             const container = document.getElementById("user-list-content");
-
+            title.innerHTML = `PHÒNG [${roomData.id}]`;
             container.innerHTML = roomData.users.map(u => {
                 const isMe = u.id === socket.id;
                 const isDealer = u.id === roomData.dealer;
@@ -823,26 +864,24 @@
                 let statusIcon = "";
                 if (isDealer) {
                     statusIcon =
-                        `<span class="dealer" title="Người cầm cái"><i class="fa-solid fa-crown"></i></span>`;
+                        `<span class="${u.isReady ? 'ready' : 'not-ready'}" title="Người cầm cái"><i class="fa-solid fa-crown"></i></span>`;
                 } else {
                     statusIcon = u.isReady ?
                         `<span class="ready" title="Đã sẵn sàng"><i class="fa-solid fa-circle-check"></i></span>` :
-                        `<span class="not-ready" title="Đang chờ"><i class="fa-solid fa-hourglass-half"></i></span>`;
+                        `<span class="not-ready" title="Đang chờ"><i class="fa-solid fa-circle"></i></span>`;
                 }
 
                 return `
-            <div class="user-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.2rem;">${statusIcon}</span>
-                    <span style="${isMe ? 'color: rgb(var(--primary)); font-weight: bold;' : ''}">
+            <div class="user-row">
+                <div>
+                    ${statusIcon}
+                    <span class="${isMe ? 'me' : ''}">
                         ${u.name} ${isMe ? '<small>(Bạn)</small>' : ''}
                     </span>
                 </div>
                 
                 ${amIDealer() && !isMe ? `
-                    <button class="btn btn-secondary" 
-                            style="padding: 4px 12px; font-size: 0.7rem; margin: 0;" 
-                            onclick="changeDealer('${u.id}')">
+                    <button class="btn btn-secondary sm" onclick="changeDealer('${u.id}')">
                         GIAO CÁI <i class="fa-solid fa-handshake"></i>
                     </button>
                 ` : ''}
